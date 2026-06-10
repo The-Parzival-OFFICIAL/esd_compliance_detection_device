@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>ESD Monitor</title>
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>ESD MONITOR</h1>
+
+        <p class="subtitle">
+            Raspberry Pi ESD Compliance Controller
+        </p>
+
+        <!-- ===================================== -->
+        <!-- STATUS PANEL -->
+        <!-- ===================================== -->
+
+        <div class="status-box">
+
+            <div class="status-label">
+                SERVICE STATUS
+            </div>
+
+            <div
+                class="status"
+                id="status"
+            >
+                UNKNOWN
+            </div>
+
+        </div>
+
+        <!-- ===================================== -->
+        <!-- BUTTONS -->
+        <!-- ===================================== -->
+
+        <div class="button-group">
+
+            <button
+                class="start-btn"
+                onclick="startMonitor()"
+            >
+                START
+            </button>
+
+            <button
+                class="stop-btn"
+                onclick="stopMonitor()"
+            >
+                STOP
+            </button>
+
+        </div>
+
+        <!-- ===================================== -->
+        <!-- HEALTH -->
+        <!-- ===================================== -->
+
+        <div
+            class="health"
+            id="health"
+        >
+            Checking health...
+        </div>
+
+        <!-- ===================================== -->
+        <!-- FOOTER -->
+        <!-- ===================================== -->
+
+        <div class="footer">
+
+            ESD Compliance Monitoring System
+
+        </div>
+
+    </div>
+
+    <!-- ========================================= -->
+    <!-- JAVASCRIPT -->
+    <!-- ========================================= -->
+
+<script>
+
+    const API_KEY = "esd_secure_key"
+
+    async function updateStatus(){
+
+        try{
+
+            let response =
+                await fetch('/status')
+
+            let data =
+                await response.json()
+
+            document.getElementById(
+                "status"
+            ).innerHTML =
+                data.monitor_status.toUpperCase()
+
+        }catch(err){
+
+            document.getElementById(
+                "status"
+            ).innerHTML =
+                "ERROR"
+        }
+    }
+
+    async function startMonitor(){
+
+        try{
+
+            let response =
+                await fetch('/start', {
+
+                    method: 'POST',
+
+                    headers: {
+                        'X-API-KEY': API_KEY
+                    }
+
+                })
+
+            let data =
+                await response.json()
+
+            console.log(data)
+
+            updateStatus()
+
+        }catch(err){
+
+            console.log(err)
+        }
+    }
+
+    async function stopMonitor(){
+
+        try{
+
+            let response =
+                await fetch('/stop', {
+
+                    method: 'POST',
+
+                    headers: {
+                        'X-API-KEY': API_KEY
+                    }
+
+                })
+
+            let data =
+                await response.json()
+
+            console.log(data)
+
+            updateStatus()
+
+        }catch(err){
+
+            console.log(err)
+        }
+    }
+
+    async function healthCheck(){
+
+        try{
+
+            let response =
+                await fetch('/health')
+
+            let data =
+                await response.json()
+
+            document.getElementById(
+                "health"
+            ).innerHTML =
+                "API STATUS : " +
+                data.status.toUpperCase()
+
+        }catch(err){
+
+            document.getElementById(
+                "health"
+            ).innerHTML =
+                "API OFFLINE"
+        }
+    }
+
+    updateStatus()
+
+    healthCheck()
+
+    setInterval(updateStatus, 30000)
+
+    setInterval(healthCheck, 50000)
+
+</script>
+
+</body>
+
+</html>

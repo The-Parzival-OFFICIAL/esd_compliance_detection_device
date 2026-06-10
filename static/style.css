@@ -1,0 +1,246 @@
+/* ======================================================
+   HTB / MONOKAI STYLE DARK THEME
+====================================================== */
+
+*{
+
+    margin: 1;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body{
+
+    background-color: #111111;
+
+    color: #f8f8f2;
+
+    font-family: "Fira Code", monospace;
+
+    height: 100vh;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+}
+
+/* ======================================================
+   MAIN CONTAINER
+====================================================== */
+
+.container{
+
+    width: 500px;
+
+    background: #1b1d1e;
+
+    border: 1px solid #272822;
+
+    border-radius: 12px;
+
+    padding: 40px;
+
+    box-shadow:
+        0 0 20px rgba(0,255,100,0.08),
+        0 0 40px rgba(0,255,100,0.03);
+}
+
+/* ======================================================
+   TITLE
+====================================================== */
+
+h1{
+
+    color: #a6e22e;
+
+    text-align: center;
+
+    margin-bottom: 10px;
+
+    font-size: 32px;
+
+    letter-spacing: 2px;
+}
+
+.subtitle{
+
+    text-align: center;
+
+    color: #75715e;
+
+    margin-bottom: 35px;
+
+    font-size: 14px;
+}
+
+/* ======================================================
+   STATUS BOX
+====================================================== */
+
+.status-box{
+
+    background: #111;
+
+    border: 1px solid #333;
+
+    border-radius: 10px;
+
+    padding: 20px;
+
+    margin-bottom: 30px;
+
+    text-align: center;
+}
+
+.status-label{
+
+    color: #66d9ef;
+
+    font-size: 14px;
+
+    margin-bottom: 10px;
+}
+
+.status{
+
+    font-size: 28px;
+
+    font-weight: bold;
+
+    color: #a6e22e;
+}
+
+/* ======================================================
+   BUTTONS
+====================================================== */
+
+.button-group{
+
+    display: flex;
+
+    gap: 15px;
+}
+
+button{
+
+    flex: 1;
+
+    padding: 15px;
+
+    border: none;
+
+    border-radius: 10px;
+
+    font-size: 16px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    transition: 0.2s ease;
+
+    font-family: inherit;
+}
+
+/* START BUTTON */
+
+.start-btn{
+
+    background: #a6e22e;
+
+    color: #111;
+}
+
+.start-btn:hover{
+
+    background: #c4f35d;
+
+    transform: translateY(-2px);
+
+    box-shadow: 0 0 15px rgba(166,226,46,0.4);
+}
+
+/* STOP BUTTON */
+
+.stop-btn{
+
+    background: #f92672;
+
+    color: white;
+}
+
+.stop-btn:hover{
+
+    background: #ff4f91;
+
+    transform: translateY(-2px);
+
+    box-shadow: 0 0 15px rgba(249,38,114,0.4);
+}
+
+/* ======================================================
+   HEALTH PANEL
+====================================================== */
+
+.health{
+
+    margin-top: 30px;
+
+    background: #111;
+
+    border-radius: 10px;
+
+    border: 1px solid #333;
+
+    padding: 15px;
+
+    font-size: 14px;
+
+    color: #66d9ef;
+
+    text-align: center;
+}
+
+/* ======================================================
+   TERMINAL STYLE FOOTER
+====================================================== */
+
+.footer{
+
+    margin-top: 25px;
+
+    text-align: center;
+
+    color: #75715e;
+
+    font-size: 12px;
+}
+
+/* ======================================================
+   GLOW ANIMATION
+====================================================== */
+
+@keyframes pulse {
+
+    0%{
+
+        box-shadow: 0 0 5px rgba(166,226,46,0.1);
+    }
+
+    50%{
+
+        box-shadow: 0 0 20px rgba(166,226,46,0.3);
+    }
+
+    100%{
+
+        box-shadow: 0 0 5px rgba(166,226,46,0.1);
+    }
+}
+
+.container{
+
+    animation: pulse 3s infinite;
+}

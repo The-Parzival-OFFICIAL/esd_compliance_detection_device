@@ -1,4 +1,12 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
+
+"""
+==============================================================
+FAST RESPONSE ESD COMPLIANCE MONITOR
+LOW LATENCY VERSION
+HLK-LD2410C + MCP3008 + BUZZER
+==============================================================
+"""
 
 import serial
 import struct
@@ -8,7 +16,7 @@ import signal
 import RPi.GPIO as GPIO
 
 # ==========================================================
-# CONFIGURATION
+# CONFIG
 # ==========================================================
 
 UART_PORT = "/dev/serial0"
@@ -16,22 +24,24 @@ UART_BAUD = 256000
 
 ADC_CHANNEL = 0
 ADC_THRESHOLD = 290
-ADC_SAMPLES = 10
+ADC_SAMPLES = 3
 
 BUZZER_PIN = 2
 
-PRESENT_SAMPLES = 3
-ABSENT_SAMPLES = 5
+# FAST RESPONSE FILTERS
+PRESENT_SAMPLES = 1
+ABSENT_SAMPLES = 2
 
 BUZZER_ON_MS = 100
 BUZZER_OFF_MS = 100
 
-LOOP_DELAY = 0.1
+LOOP_DELAY = 0.02
 
-MAX_WORKSTATION_DISTANCE_CM = 150
+# ==========================================================
+# DETECTION THRESHOLD
+# ==========================================================
 
-GATE0_STATIC_THRESHOLD = 15
-GATE1_STATIC_THRESHOLD = 15
+MOTION_THRESHOLD = 25
 
 # ==========================================================
 # GLOBALS
@@ -44,7 +54,9 @@ running = True
 # ==========================================================
 
 def stop_handler(signum, frame):
+
     global running
+
     running = False
 
 
@@ -56,9 +68,9 @@ signal.signal(signal.SIGTERM, stop_handler)
 # ==========================================================
 
 GPIO.setmode(GPIO.BCM)
+
 GPIO.setup(BUZZER_PIN, GPIO.OUT)
 
-# buzzer off
 GPIO.output(BUZZER_PIN, GPIO.LOW)
 
 # ==========================================================
@@ -66,9 +78,14 @@ GPIO.output(BUZZER_PIN, GPIO.LOW)
 # ==========================================================
 
 spi = spidev.SpiDev()
-spi.open(0, 0)
-spi.max_speed_hz = 500000
 
+spi.open(0, 0)
+
+spi.max_speed_hz = 1000000
+
+# ==========================================================
+# ADC FUNCTIONS
+# ==========================================================
 
 def read_adc(channel):
 
@@ -87,10 +104,7 @@ def read_average(channel, samples):
 
         total += read_adc(channel)
 
-        time.sleep(0.001)
-
     return total / samples
-
 
 # ==========================================================
 # LD2410 DRIVER
@@ -106,87 +120,162 @@ class LD2410:
         self.ser = serial.Serial(
             port=port,
             baudrate=baudrate,
-            timeout=0.1
+            timeout=0.05
         )
+
+        self.ser.reset_input_buffer()
+
+        time.sleep(1)
+
+    # ======================================================
+    # CLOSE
+    # ======================================================
 
     def close(self):
 
         self.ser.close()
 
-    # ------------------------------------------------------
-    # Generic command sender
-    # ------------------------------------------------------
+    # ======================================================
+    # SEND COMMAND
+    # ======================================================
 
-    def send_command(self, cmd):
+    def send_command(self, cmd, name="CMD"):
 
-        if not cmd:
-            return
+        print()
+        print("=" * 50)
+        print(name)
+        print("=" * 50)
+
+        self.ser.reset_input_buffer()
 
         self.ser.write(cmd)
 
-        time.sleep(0.2)
+        time.sleep(0.1)
 
         ack = self.ser.read(64)
 
-        print("RADAR ACK:", ack.hex())
+        print("ACK:", ack.hex())
 
-    # ------------------------------------------------------
-    # Radar Configuration
-    # ------------------------------------------------------
+    # ======================================================
+    # CONFIGURE RADAR
+    # ======================================================
 
-    def configure_for_esd_workstation(self):
+    def configure_for_fast_detection(self):
 
-        print("Configuring LD2410...")
+        print("\nCONFIGURING LD2410...\n")
 
-        # ==================================================
-        # TODO:
-        # ENTER CONFIG MODE COMMAND
-        # ==================================================
-        enter_config_cmd = b'\xFD \xFC \xFB \xFA \x04 \x00 \xFF \x00 \x01 \x00 \x04 \x03 \x02 \x01'
-        self.send_command(enter_config_cmd)
+        # --------------------------------------------------
+        # ENTER CONFIG
+        # --------------------------------------------------
 
-        # ==================================================
-        # TODO:
+        enter_config_cmd = bytes.fromhex(
+            "FD FC FB FA 04 00 FF 00 01 00 04 03 02 01"
+        )
+
+        # --------------------------------------------------
         # ENABLE ENGINEERING MODE
-        # ==================================================
-        engineering_mode_cmd = b'\xFD \xFC \xFB \xFA \x02 \x00 \x62 \x00 \x04 \x03 \x02 \x01'
-        self.send_command(engineering_mode_cmd)
+        # --------------------------------------------------
 
-        # ==================================================
-        # TODO:
-        # SET MAX RANGE TO 150 cm
-        # ==================================================
-        range_cmd = b'\xFD \xFC \xFB \xFA \x14 \x00 \x60 \x00 \x00 \x00 \x08 \x00 \x00 \x00 \x01 \x00 \x08 \x00 \x00 \x00 \x02 \x00 \x05 \x00 \x00 \x00 \x03 \x02 \x01'
-        self.send_command(range_cmd)
+        engineering_mode_cmd = bytes.fromhex(
+            "FD FC FB FA 02 00 62 00 04 03 02 01"
+        )
 
-        # ==================================================
-        # TODO:
-        # GATE0 STATIC SENSITIVITY
-        # ==================================================
-        gate0_static_cmd = b'\xFD \xFC \xFB \xFA \x14 \x00 \x64 \x00 \x00 \x00 \x00 \x00 \x00 \x00 \x01 \x00 \x00 \x00 \x00 \x00 \x02 \x00 \x28 \x00 \x00 \x00 \x04 \x03 \x02 \x01'
-        self.send_command(gate0_static_cmd)
+        # --------------------------------------------------
+        # EXIT CONFIG
+        # --------------------------------------------------
 
-        # ==================================================
-        # TODO:
-        # GATE1 STATIC SENSITIVITY
-        # ==================================================
-        gate1_static_cmd = b'\xFD \xFC \xFB \xFA \x14 \x00 \x64 \x00 \x00 \x00 \x01 \x00 \x00 \x00 \x01 \x00 \x00 \x00 \x00 \x00 \x02 \x00 \x28 \x00 \x00 \x00 \x04 \x03 \x02 \x01'
-        self.send_command(gate1_static_cmd)
+        exit_cmd = bytes.fromhex(
+            "FD FC FB FA 02 00 FE 00 04 03 02 01"
+        )
 
+        # --------------------------------------------------
+        # MAX GATE = 2 (~1.5m)
+        # NO PERSON DURATION = 1 sec
+        # --------------------------------------------------
 
+        max_gate_cmd = bytes.fromhex(
+            "FD FC FB FA "
+            "14 00 "
+            "60 00 "
 
-        # ==================================================
-        # TODO:
-        # EXIT CONFIG MODE
-        # ==================================================
-        exit_cmd = b'\xFD \xFC \xFB \xFA \x02 \x00 \xFE \x00 \x04 \x03 \x02 \x01'
-        self.send_command(exit_cmd)
+            "00 00 02 00 00 00 "
+            "01 00 02 00 00 00 "
+            "02 00 01 00 00 00 "
 
-        print("LD2410 configuration complete")
+            "04 03 02 01"
+        )
 
-    # ------------------------------------------------------
-    # Read Frame
-    # ------------------------------------------------------
+        # --------------------------------------------------
+        # GATE 0
+        # --------------------------------------------------
+
+        gate0_cmd = bytes.fromhex(
+            "FD FC FB FA "
+            "14 00 "
+            "64 00 "
+
+            "00 00 00 00 00 00 "
+            "01 00 28 00 00 00 "
+            "02 00 28 00 00 00 "
+
+            "04 03 02 01"
+        )
+
+        # --------------------------------------------------
+        # GATE 1
+        # --------------------------------------------------
+
+        gate1_cmd = bytes.fromhex(
+            "FD FC FB FA "
+            "14 00 "
+            "64 00 "
+
+            "00 00 01 00 00 00 "
+            "01 00 1E 00 00 00 "
+            "02 00 1E 00 00 00 "
+
+            "04 03 02 01"
+        )
+
+        # --------------------------------------------------
+        # SEND COMMANDS
+        # --------------------------------------------------
+
+        self.send_command(
+            enter_config_cmd,
+            "ENTER CONFIG"
+        )
+
+        self.send_command(
+            engineering_mode_cmd,
+            "ENGINEERING MODE"
+        )
+
+        self.send_command(
+            max_gate_cmd,
+            "SET MAX GATE"
+        )
+
+        self.send_command(
+            gate0_cmd,
+            "CONFIG GATE0"
+        )
+
+        self.send_command(
+            gate1_cmd,
+            "CONFIG GATE1"
+        )
+
+        self.send_command(
+            exit_cmd,
+            "EXIT CONFIG"
+        )
+
+        print("\nLD2410 CONFIG COMPLETE\n")
+
+    # ======================================================
+    # READ TARGET INFO
+    # ======================================================
 
     def read_target_info(self):
 
@@ -221,16 +310,10 @@ class LD2410:
         if footer != self.FOOTER:
             return None
 
-        if len(payload) < 11:
+        if len(payload) < 31:
             return None
 
-        data_type = payload[0]
-
-        # --------------------------------------------------
-        # NORMAL MODE
-        # --------------------------------------------------
-
-        if data_type != 0x02:
+        if payload[0] != 0x01:
             return None
 
         if payload[1] != 0xAA:
@@ -242,52 +325,40 @@ class LD2410:
                 payload[2],
 
             "motion_distance":
-                payload[3] |
-                (payload[4] << 8),
+                struct.unpack(
+                    "<H",
+                    payload[3:5]
+                )[0],
 
             "motion_energy":
                 payload[5],
 
             "stationary_distance":
-                payload[6] |
-                (payload[7] << 8),
+                struct.unpack(
+                    "<H",
+                    payload[6:8]
+                )[0],
 
             "stationary_energy":
                 payload[8],
 
             "detection_distance":
-                payload[9] |
-                (payload[10] << 8),
+                struct.unpack(
+                    "<H",
+                    payload[9:11]
+                )[0],
 
-            "gate0_motion": 0,
-            "gate1_motion": 0,
-            "gate0_static": 0,
-            "gate1_static": 0
+            "gate0_motion":
+                payload[13],
+
+            "gate1_motion":
+                payload[14],
+
+            "gate2_motion":
+                payload[15],
         }
 
-        # --------------------------------------------------
-        # TODO:
-        # ENGINEERING MODE PARSING
-        #
-        # UPDATE OFFSETS BELOW AFTER
-        # VERIFYING FRAME STRUCTURE
-        # --------------------------------------------------
-
-        if len(payload) > 30:
-
-            try:
-
-                info["gate0_motion"] = payload[13]
-                info["gate1_motion"] = payload[14]
-
-                info["gate0_static"] = payload[22]
-                info["gate1_static"] = payload[23]
-
-            except Exception:
-                pass
-
         return info
-
 
 # ==========================================================
 # PRESENCE FILTER
@@ -295,18 +366,10 @@ class LD2410:
 
 class PresenceFilter:
 
-    def __init__(
-        self,
-        present_required,
-        absent_required
-    ):
-
-        self.present_required = present_required
-        self.absent_required = absent_required
+    def __init__(self):
 
         self.present_count = 0
         self.absent_count = 0
-
         self.state = False
 
     def update(self, detected):
@@ -321,20 +384,21 @@ class PresenceFilter:
             self.absent_count += 1
             self.present_count = 0
 
+        # FAST DETECT
         if not self.state:
 
-            if self.present_count >= self.present_required:
+            if self.present_count >= PRESENT_SAMPLES:
 
                 self.state = True
 
+        # FAST CLEAR
         else:
 
-            if self.absent_count >= self.absent_required:
+            if self.absent_count >= ABSENT_SAMPLES:
 
                 self.state = False
 
         return self.state
-
 
 # ==========================================================
 # ACTIVE BUZZER
@@ -386,42 +450,21 @@ class ActiveBuzzer:
 
             self.last_toggle = now
 
-
 # ==========================================================
-# WORKSTATION DETECTION
+# HUMAN DETECTION
 # ==========================================================
 
 def workstation_presence(info):
 
-    # ------------------------------------------------------
-    # Future engineering mode logic
-    # ------------------------------------------------------
+    motion_score = (
+        info["gate0_motion"] +
+        info["gate1_motion"]
+    )
 
-    if (
-        info["gate0_static"] > GATE0_STATIC_THRESHOLD
-        or
-        info["gate1_static"] > GATE1_STATIC_THRESHOLD
-    ):
-        return True
-
-    # ------------------------------------------------------
-    # Current normal mode logic
-    # ------------------------------------------------------
-
-    if info["target_state"] not in (
-        0x02,
-        0x03
-    ):
-        return False
-
-    if (
-        info["detection_distance"]
-        > MAX_WORKSTATION_DISTANCE_CM
-    ):
-        return False
-
-    return True
-
+    return (
+        motion_score >
+        MOTION_THRESHOLD
+    )
 
 # ==========================================================
 # STARTUP
@@ -432,28 +475,17 @@ radar = LD2410(
     UART_BAUD
 )
 
-# Configure radar
-radar.configure_for_esd_workstation()
+radar.configure_for_fast_detection()
 
-presence = PresenceFilter(
-    PRESENT_SAMPLES,
-    ABSENT_SAMPLES
-)
+presence = PresenceFilter()
 
 buzzer = ActiveBuzzer(
     BUZZER_PIN
 )
 
-state_names = {
-    0: "NO_TARGET",
-    1: "MOVING",
-    2: "STATIONARY",
-    3: "MOVING+STATIONARY"
-}
-
 print()
 print("========================================")
-print(" ESD COMPLIANCE MONITOR STARTED")
+print(" FAST ESD MONITOR STARTED")
 print("========================================")
 print()
 
@@ -470,6 +502,10 @@ try:
         if info is None:
             continue
 
+        # --------------------------------------------------
+        # HUMAN DETECTION
+        # --------------------------------------------------
+
         raw_presence = workstation_presence(
             info
         )
@@ -477,6 +513,10 @@ try:
         human_present = presence.update(
             raw_presence
         )
+
+        # --------------------------------------------------
+        # ADC
+        # --------------------------------------------------
 
         adc_value = read_average(
             ADC_CHANNEL,
@@ -486,6 +526,10 @@ try:
         voltage = (
             adc_value * 3.3
         ) / 1023
+
+        # --------------------------------------------------
+        # ESD CHECK
+        # --------------------------------------------------
 
         if human_present:
 
@@ -498,18 +542,23 @@ try:
 
             esd_ok = True
 
+        # --------------------------------------------------
+        # DEBUG
+        # --------------------------------------------------
+
         print(
             f"Human={'YES' if human_present else 'NO'} | "
-            f"Radar={state_names.get(info['target_state'])} | "
             f"Dist={info['detection_distance']:3d}cm | "
-            f"MoveE={info['motion_energy']:3d} | "
-            f"StatE={info['stationary_energy']:3d} | "
-            f"G0S={info['gate0_static']:3d} | "
-            f"G1S={info['gate1_static']:3d} | "
+            f"G0={info['gate0_motion']:3d} | "
+            f"G1={info['gate1_motion']:3d} | "
             f"ADC={adc_value:6.1f} | "
             f"V={voltage:.2f}V | "
             f"ESD={'OK' if esd_ok else 'FAULT'}"
         )
+
+        # --------------------------------------------------
+        # BUZZER
+        # --------------------------------------------------
 
         if human_present and not esd_ok:
 
@@ -522,6 +571,10 @@ try:
         time.sleep(
             LOOP_DELAY
         )
+
+# ==========================================================
+# CLEANUP
+# ==========================================================
 
 finally:
 
