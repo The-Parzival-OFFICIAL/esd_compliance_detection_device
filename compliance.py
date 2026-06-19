@@ -238,6 +238,18 @@ class LD2410:
         )
 
         # --------------------------------------------------
+        # DISTANCE RESOLUTION = 0.2m PER GATE
+        # --------------------------------------------------
+
+        distance_resolution_cmd = bytes.fromhex(
+            "FD FC FB FA "
+            "04 00 "
+            "AA 00 "
+            "01 00 "
+            "04 03 02 01"
+        )
+
+        # --------------------------------------------------
         # SEND COMMANDS
         # --------------------------------------------------
 
@@ -264,6 +276,11 @@ class LD2410:
         self.send_command(
             gate1_cmd,
             "CONFIG GATE1"
+        )
+
+        self.send_command(
+            distance_resolution_cmd,
+            "SET 0.2M RESOLUTION"
         )
 
         self.send_command(
