@@ -24,7 +24,7 @@ The system combines human presence detection using the HLK-LD2410C mmWave radar 
 
 ## System Architecture
 
-![System Architecture](architecture.png)
+![System Architecture](architecture.jpeg)
 
 The system continuously monitors workstation occupancy and ESD compliance status. Presence information from the LD2410C radar and ESD status information from the monitoring circuit are processed by the Raspberry Pi. If a person is detected and an ESD fault condition exists, the buzzer alarm is activated.
 
