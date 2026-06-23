@@ -266,7 +266,7 @@ Fast-Response-ESD-Monitor/
 ### Clone Repository
 
 ```bash
-git clone https://github.com/<username>/Fast-Response-ESD-Monitor.git
+git clone https://github.com/The-Parzival-OFFICIAL/esd_compliance_detection_device.git
 
 cd Fast-Response-ESD-Monitor
 ```
@@ -352,7 +352,7 @@ Human=YES | Dist=48cm | G0=39 | G1=33 | ADC=365.8 | V=1.18V | ESD=FAULT
 
 ## Author
 
-Joseph Mathew
+THE-Parzival-OFFICIAL
 
 Electronics and Communication Engineering
 
